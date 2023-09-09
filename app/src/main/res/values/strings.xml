@@ -3,4 +3,5 @@
     <string name="nome_usuario">Nome do usuário</string>
     <string name="confirmar">Confirmar</string>
     <string name="response_error">Algo deu errado, tente novamente mais tarde.</string>
+    <string name="sem_internet">Ops... Sem conexão</string>
 </resources>

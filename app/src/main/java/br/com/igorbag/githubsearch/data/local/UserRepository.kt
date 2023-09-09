@@ -90,12 +90,32 @@ class UserRepository(private val context: Context) {
         return user
     }
 
+    fun update(user: User): Boolean {
+        return try {
+            val dbHelper = UserDbHelper(context)
+            val db = dbHelper.writableDatabase
+            val values = ContentValues().apply {
+                put(COLUMN_NAME_NOME, user.nome)
+            }
+
+            val condicao = "${BaseColumns._ID} = ?"
+            val condicaoArgs = arrayOf(user.id.toString())
+
+            db?.update(UserContract.UsuarioEntry.TABLE_NAME, values, condicao, condicaoArgs) != null
+        }catch (ex: Exception) {
+            ex.message?.let {
+                Log.e("ERRO_UPDATE_USER", it)
+            }
+            false
+        }
+    }
+
     fun saveIfNotExists(user: User): Boolean {
         val userFind = findUserById(user.nome)
         if(userFind.id == ID_WHEN_NO_USER) {
             return save(user)
         }
-        return false
+        return update(user)
     }
 
     companion object {

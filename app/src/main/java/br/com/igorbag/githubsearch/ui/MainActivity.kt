@@ -2,13 +2,19 @@ package br.com.igorbag.githubsearch.ui
 
 import android.content.Context
 import android.content.Intent
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.view.View
 import android.widget.Button
 import android.widget.EditText
+import android.widget.ProgressBar
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.isVisible
 import androidx.recyclerview.widget.RecyclerView
 import br.com.igorbag.githubsearch.R
 import br.com.igorbag.githubsearch.data.GitHubService
@@ -28,6 +34,8 @@ class MainActivity : AppCompatActivity() {
     lateinit var btnConfirmar: Button
     lateinit var listaRepositories: RecyclerView
     lateinit var githubApi: GitHubService
+    lateinit var progress: ProgressBar
+    lateinit var textoSemInternet: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -39,11 +47,21 @@ class MainActivity : AppCompatActivity() {
         getAllReposByUserName()
     }
 
+    override fun onResume() {
+        super.onResume()
+        if (checkForInternet(this)){
+            btnConfirmar.isEnabled = true
+            getAllReposByUserName()
+        } else emptyState()
+    }
+
     // Metodo responsavel por realizar o setup da view e recuperar os Ids do layout
     fun setupView() {
         nomeUsuario = findViewById(R.id.et_nome_usuario)
         btnConfirmar = findViewById(R.id.btn_confirmar)
+        textoSemInternet = findViewById(R.id.tv_no_internet)
         listaRepositories = findViewById(R.id.rv_lista_repositories)
+        progress = findViewById(R.id.pb_loader)
     }
 
     //metodo responsavel por configurar os listeners click da tela
@@ -80,6 +98,9 @@ class MainActivity : AppCompatActivity() {
 
     //Metodo responsavel por buscar todos os repositorios do usuario fornecido
     private fun getAllReposByUserName() {
+        progress.isVisible = true
+        listaRepositories.isVisible = false
+        textoSemInternet.visibility = View.GONE
         val contexto : Context = this
         githubApi.getAllRepositoriesByUser(nomeUsuario.text.toString()).enqueue(object : Callback<List<Repository>> {
             override fun onResponse(call: Call<List<Repository>>, response: Response<List<Repository>>) {
@@ -101,9 +122,40 @@ class MainActivity : AppCompatActivity() {
     // Metodo responsavel por realizar a configuracao do adapter
     fun setupAdapter(list: List<Repository>, context: Context) {
         val repositoryAdapter = RepositoryAdapter(list, context)
+
+        progress.visibility = View.GONE
+        textoSemInternet.visibility = View.GONE
+
         listaRepositories.apply {
             visibility = View.VISIBLE
             adapter = repositoryAdapter
         }
     }
+
+    private fun checkForInternet(context: Context?): Boolean {
+        val connectivityManager =
+            context?.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+
+        if(Build.VERSION.SDK_INT > Build.VERSION_CODES.M) {
+            val network = connectivityManager.activeNetwork?: return false
+            val activeNetwork = connectivityManager.getNetworkCapabilities(network)?: return false
+            return when {
+                activeNetwork.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> true
+                activeNetwork.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> true
+                else -> false
+            }
+        } else {
+            @Suppress("DEPRECATION")
+            val networkInfo = connectivityManager.activeNetworkInfo?: return false
+            @Suppress("DEPRECATION")
+            return networkInfo.isConnected
+        }
+    }
+
+    private fun emptyState() {
+        progress.isVisible = false
+        listaRepositories.isVisible = false
+        textoSemInternet.isVisible = true
+    }
+
 }
