@@ -154,6 +154,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun emptyState() {
         progress.isVisible = false
+        btnConfirmar.isEnabled = false
         listaRepositories.isVisible = false
         textoSemInternet.isVisible = true
     }
